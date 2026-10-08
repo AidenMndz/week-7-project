@@ -11,9 +11,9 @@ public partial class MainWindow : Window
     private record Slide(string Text, string ImagePath, string Description);
     private readonly Slide[] slides =
     {
-        new Slide("Welcome New Members to Greenward. This is the map of the garden and also the different plant types that this garden holds. You're going to want to get used to this and memorize this like the back of your hand!", "Assets/Images/01.png", "A signal card: Introduction to the Garden."),
-        new Slide("Here is the list of all the types of plants we have at Greenward, when it comes to our plant portfolio its the best in the land.", "Assets/Images/02.png", "A route card: Plant type list."),
-        new Slide("Here is the instructions on how to tend to the plants and upkeep Greenward. Please refer to the instructions list anytime you dont know how to tend to a certain plant.", "Assets/Images/03.png", "A handoff card: PLant tending instructions.")
+        new Slide("A signal reaches the next crew. What do they need to know?", "Assets/Images/01.png", "A signal card: the story begins."),
+        new Slide("The crew compares the route with the last reliable observation.", "Assets/Images/02.png", "A route card: inspect the problem."),
+        new Slide("Leave a clear account for the next reader. Your story continues here.", "Assets/Images/03.png", "A handoff card: record the result.")
     };
     private int currentSlide = 0; // Array positions start at zero.
 
@@ -66,4 +66,60 @@ public partial class MainWindow : Window
         ShowSlide(0);
     }
     // DAY 7B: paste CaptureHandlers.cs.txt HERE, inside these class braces.
+    private BitmapSource? capturedImage;
+
+    private void CaptureButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            capturedImage = CaptureService.CapturePrimaryScreen();
+            CapturePreview.Source = capturedImage;
+            SaveCaptureButton.IsEnabled = true;
+            ClearCaptureButton.IsEnabled = true;
+            StatusText.Text = "Capture ready. Inspect it before saving or sharing.";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Capture failed: " + ex.Message;
+        }
+    }
+
+    private void SaveCaptureButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (capturedImage is null) return;
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "PNG image|*.png",
+            DefaultExt = ".png",
+            AddExtension = true,
+            FileName = "story-capture.png",
+            OverwritePrompt = true
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            StatusText.Text = "Save cancelled. Preview kept.";
+            return;
+        }
+        try
+        {
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(capturedImage));
+            using var file = File.Create(dialog.FileName);
+            encoder.Save(file);
+            StatusText.Text = "PNG saved: " + dialog.FileName;
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Save failed. Choose a writable folder. " + ex.Message;
+        }
+    }
+
+    private void ClearCaptureButton_Click(object sender, RoutedEventArgs e)
+    {
+        capturedImage = null;
+        CapturePreview.Source = null;
+        SaveCaptureButton.IsEnabled = false;
+        ClearCaptureButton.IsEnabled = false;
+        StatusText.Text = "Preview cleared. Story position kept.";
+    }
 }
